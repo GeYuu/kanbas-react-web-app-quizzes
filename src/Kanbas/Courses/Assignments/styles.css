@@ -1,0 +1,17 @@
+.wd-lesson {
+    position: relative;
+    padding-left: 10px;
+
+}
+
+.wd-lesson::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+
+    background-color: green;
+
+}
