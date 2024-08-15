@@ -58,25 +58,69 @@ export default function Dashboard(
 
   const handleAddNewCourse = async () => {
     try {
-        setError(null); // Clear any previous errors
+      setError(null); // Clear any previous errors
 
-        // Check if the user is faculty
-        if (currentUser?.role !== "FACULTY") {
-            setError("Only faculty can add new courses.");
-            return;
-        }
+      // Check if the user is faculty
+      if (currentUser?.role !== "FACULTY") {
+        setError("Only faculty can add new courses.");
+        return;
+      }
 
-        // Pass the currentUser._id (userid) when adding a new course
-        await addNewCourse(currentUser._id);
+      // Pass the currentUser._id (userid) when adding a new course
+      await addNewCourse(currentUser._id);
     } catch (err: any) {
-        if (err.response && err.response.data && err.response.data.message) {
-            setError(err.response.data.message);
-        } else {
-            setError(err.message || "An error occurred while adding the course");
-        }
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError(err.message || "An error occurred while adding the course");
+      }
     }
-};
+  };
+
+  const handleUpdateCourse = async () => {
+    try {
+      setError(null); // Clear any previous errors
+
+      // Check if the user is faculty
+      if (currentUser?.role !== "FACULTY") {
+        setError("Only faculty can update courses.");
+        return;
+      }
+
+      // Pass the currentUser._id (userid) when updating a course
+      await updateCourse();
+    }
+    catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError(err.message || "An error occurred while updating the course");
+      }
+    }
+  }
+
+  const handleDeleteCourse = async (courseId: string) => {
+    try {
+      setError(null); // Clear any previous errors
+
+      // Check if the user is faculty
+      if (currentUser?.role !== "FACULTY") {
+        setError("Only faculty can delete courses.");
+        return;
+      }
+
+      // Pass the currentUser._id (userid) when deleting a course
+      await deleteCourse(courseId);
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError(err.message || "An error occurred while deleting the course");
+      }
+    }
+  }
   
+
 
   // Filter the courses to only include those that the user is enrolled in
   const filteredCourses = courses.filter(course => enrolledCourseIDs.includes(course._id));
@@ -102,7 +146,7 @@ export default function Dashboard(
           id="wd-add-new-course-click"
           onClick={handleAddNewCourse} > Add </button>
         <button className="btn btn-warning float-end me-2"
-          onClick={updateCourse} id="wd-update-course-click">
+          onClick={handleUpdateCourse} id="wd-update-course-click">
           Update
         </button>
       </h5><br />
@@ -155,7 +199,7 @@ export default function Dashboard(
 
                     <button onClick={(event) => {
                       event.preventDefault();
-                      deleteCourse(course._id);
+                      handleDeleteCourse(course._id);
                     }} className="btn btn-danger float-end me-2"
                       id="wd-delete-course-click">
                       Delete

@@ -9,6 +9,8 @@ import { Navigate, Route, Routes, useParams, useLocation } from "react-router";
 import Grades from "./Grades";
 import PeopleTable from "./People/Table";
 import PeopleDetails from "./People/Details";
+import Quizzes from "./Quiz";
+import QuizEditor from "./Quiz/editor";
 
 export default function Courses({ courses }: { courses: any[]; }) {
     const { cid } = useParams();
@@ -36,7 +38,9 @@ export default function Courses({ courses }: { courses: any[]; }) {
                         <Route path="Assignments" element={<Assignments />} />
                         <Route path="Grades" element={<Grades />} />
                         <Route path="Assignments/:id" element={<AssignmentEditor />} />
-                        <Route path="Quizzes" element={<h2>Quizzes</h2>} />
+
+                        <Route path="Quizzes" element={<Quizzes />} />
+                        <Route path="Quizzes/:id" element={<QuizEditor />} />
                         <Route path="People" element={<PeopleTable />} />
                         <Route path="People/:uid" element={<PeopleTable />} />
                     </Routes>
