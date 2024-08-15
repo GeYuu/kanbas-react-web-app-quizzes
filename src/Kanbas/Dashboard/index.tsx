@@ -7,6 +7,7 @@ import { RootState } from '../store';
 interface User {
   _id: string;
   username: string;
+  role: string;
 }
 
 export default function Dashboard(
@@ -17,14 +18,14 @@ export default function Dashboard(
     course: any;
     setCourse: (course: any) => void;
 
-    addNewCourse: () => void;
+    addNewCourse: (userId: string) => void;
     deleteCourse: (course: any) => void;
     updateCourse: () => void;
   }) {
-  
+
   // Retrieve the current user from Redux
   const currentUser = useSelector((state: RootState) => state.accountReducer.currentUser) as User | null;
-  
+
   // State to store the enrolled course IDs
   const [enrolledCourseIDs, setEnrolledCourseIDs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +40,13 @@ export default function Dashboard(
   const findEnrolledCourses = async () => {
     try {
       const fetchedEnrolledCourseIDs = await fetchEnrolledCourses(currentUser?._id || "");
-      
+
       // Ensure that fetchedEnrolledCourseIDs is always an array
       if (Array.isArray(fetchedEnrolledCourseIDs)) {
         setEnrolledCourseIDs(fetchedEnrolledCourseIDs);
       } else {
         setEnrolledCourseIDs([]);
-        console.log(fetchedEnrolledCourseIDs);
+        //console.log(fetchedEnrolledCourseIDs);
         setError("Unexpected response format. Could not load enrolled courses.");
       }
     } catch (err: any) {
@@ -57,28 +58,44 @@ export default function Dashboard(
 
   const handleAddNewCourse = async () => {
     try {
-      setError(null);
-      await addNewCourse();
+        setError(null); // Clear any previous errors
+
+        // Check if the user is faculty
+        if (currentUser?.role !== "FACULTY") {
+            setError("Only faculty can add new courses.");
+            return;
+        }
+
+        // Pass the currentUser._id (userid) when adding a new course
+        await addNewCourse(currentUser._id);
     } catch (err: any) {
-      setError(err.message || "An error occurred while adding the course");
+        if (err.response && err.response.data && err.response.data.message) {
+            setError(err.response.data.message);
+        } else {
+            setError(err.message || "An error occurred while adding the course");
+        }
     }
-  };
+};
+  
 
   // Filter the courses to only include those that the user is enrolled in
   const filteredCourses = courses.filter(course => enrolledCourseIDs.includes(course._id));
 
   return (
     <div id="wd-dashboard">
-      <h1 id="wd-dashboard-title">Dashboard</h1> 
+      <h1 id="wd-dashboard-title">Dashboard</h1>
       <hr />
       <h5>Course Management</h5>
 
       {/* Enroll Link */}
       <Link to="/Kanbas/Enroll" className="btn btn-primary">Enroll</Link>
-      
+
       <hr />
       <div> currentUserId: {currentUser?._id} </div>
-      
+      <div> Your Name: {currentUser?.username} </div>
+      <div> Your Role: {currentUser?.role} </div>
+
+
       <hr />
       <h5>New Course
         <button className="btn btn-primary float-end"
@@ -92,12 +109,17 @@ export default function Dashboard(
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      <label htmlFor="courseId">Course ID</label>
+      <input value={course._id} className="form-control mb-2"
+        onChange={(e) => setCourse({ ...course, _id: e.target.value })} />
+      <label htmlFor="courseName">Course Name</label>
       <input value={course.name} className="form-control mb-2"
         onChange={(e) => setCourse({ ...course, name: e.target.value })} />
+      <label htmlFor="courseNumber">Course Number</label>
       <textarea value={course.description} className="form-control"
         onChange={(e) => setCourse({ ...course, description: e.target.value })} />
 
-      <h2 id="wd-dashboard-enrolled">Enrolled Courses ({filteredCourses.length})</h2> 
+      <h2 id="wd-dashboard-enrolled">Enrolled Courses ({filteredCourses.length})</h2>
       <hr />
       <div id="wd-dashboard-courses" className="row">
         <div className="row row-cols-1 row-cols-md-5 g-4">

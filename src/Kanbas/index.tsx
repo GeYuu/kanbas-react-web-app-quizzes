@@ -30,8 +30,8 @@ export default function Kanbas() {
     _id: "1234", name: "New Course", number: "New Number",
     startDate: "2023-09-10", endDate: "2023-12-15", description: "New Description",
   });
-  const addNewCourse = async () => {
-    const newCourse = await client.createCourse(course);
+  const addNewCourse = async (userId: string) => {
+    const newCourse = await client.createCourse(course, userId);
     setCourses([...courses, newCourse]);
   };
 
