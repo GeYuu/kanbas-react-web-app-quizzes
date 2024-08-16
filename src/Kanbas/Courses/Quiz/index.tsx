@@ -36,6 +36,7 @@ export default function Quizzes() {
         dispatch(setQuizzes(quizzes));
     }
 
+    
     const handleCreateQuiz = () => {
         navigate(`/Kanbas/Courses/${cid}/quizzes/new`);
     }

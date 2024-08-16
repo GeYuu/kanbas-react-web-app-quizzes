@@ -49,7 +49,7 @@ export default function QuizEditor() {
     const [html, setHtml] = useState('');
     const dispatch = useDispatch();
     const navigate = useNavigate();
-
+    const [selectedQuestionType, setSelectedQuestionType] = useState<string>('');
 
     const createQuiz = async (quiz: any) => {
         const newQuiz = await client.createQuiz(cid as string, { ...quiz, course: cid });
@@ -99,13 +99,14 @@ export default function QuizEditor() {
     const handleCancel = () => {
         navigate(`/Kanbas/Courses/${cid}/quizzes`);
     };
-
     const handleSave = () => {
+        const totalPoints = quiz.questions.reduce((sum, question) => sum + (question.points || 0), 0);
+        const updatedQuiz = { ...quiz, points: totalPoints };
 
         if (qid && existingQuiz) {
-            saveQuiz({ ...quiz, course: cid });
+            saveQuiz(updatedQuiz);
         } else {
-            createQuiz({ ...quiz, course: cid });
+            createQuiz(updatedQuiz);
         }
         navigate(`/Kanbas/Courses/${cid}/quizzes`);
     };
@@ -139,6 +140,10 @@ export default function QuizEditor() {
             i === index ? updatedQuestion : q
         );
         setQuiz({ ...quiz, questions: updatedQuestions });
+    };
+
+    const deleteQuestion = (questionId: string) => {
+        setQuiz({ ...quiz, questions: quiz.questions.filter(q => q.id !== questionId) });
     };
 
 
@@ -206,6 +211,10 @@ export default function QuizEditor() {
 
                         <div className="mb-3">
 
+                            <label htmlFor="title" className="form-label fw-bold">
+                                Quiz Title
+                            </label>
+
                             <input
                                 id="title"
                                 value={quiz.title}
@@ -218,7 +227,7 @@ export default function QuizEditor() {
                         <div className="mb-3">
 
                             <label htmlFor="description" className="form-label">
-                                Quiz Instructions:
+                                Quiz Instructions
                             </label>
                             <Editor
                                 value={quiz.description}
@@ -515,86 +524,95 @@ export default function QuizEditor() {
 
 
                         <br /><br /><br /><br />
-                        <div className="d-flex justify-content-end">
-                            <button onClick={handleCancel} className="btn btn-secondary me-2">Cancel</button>
-                            <button onClick={handleSave} className="btn btn-primary btn-danger">Save</button>
-                        </div>
+
                     </div>
                 </div>
                 <div className="tab-pane fade" id="questions">
-
-                    <button
-                        className="btn btn-secondary mb-3"
-                        onClick={() => addNewQuestion('multiple-choice')}
-                    >
-                        + New Multiple Choice Question
-                    </button>
-                    <button
-                        className="btn btn-secondary mb-3 ms-2"
-                        onClick={() => addNewQuestion('true-false')}
-                    >
-                        + New True/False Question
-                    </button>
-                    <button
-                        className="btn btn-secondary mb-3 ms-2"
-                        onClick={() => addNewQuestion('fill-in-blank')}
-                    >
-                        + New Fill-in-the-Blank Question
-                    </button>
-
-
-
-
-
-
-
-                    {quiz.questions.map((question, index) => (
-                        <div key={question.id} className="card mb-3">
-                            <div className="card-body">
-                                <div className="d-flex justify-content-between">
-                                    <h5 className="card-title">Question {index + 1}</h5>
-                                    <button
-                                        className="btn btn-danger"
-                                        onClick={() => {
-                                            const updatedQuestions = quiz.questions.filter((_, i) => i !== index);
-                                            setQuiz({ ...quiz, questions: updatedQuestions });
-                                        }}
+                    <div className="container">
+                        <div className="row justify-content-center">
+                            <div className="col-md-6">
+                                <div className="d-flex mb-3">
+                                    {/* question type selector */}
+                                    <select
+                                        className="form-select me-2"
+                                        style={{ width: 'auto' }}
+                                        onChange={(e) => setSelectedQuestionType(e.target.value)}
+                                        value={selectedQuestionType}
                                     >
-                                        Delete
+                                        <option value="">Select question type</option>
+                                        <option value="multiple-choice">Multiple Choice</option>
+                                        <option value="true-false">True/False</option>
+                                        <option value="fill-in-blank">Fill-in-the-Blank</option>
+                                    </select>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => addNewQuestion(selectedQuestionType)}
+                                        disabled={!selectedQuestionType}
+                                    >
+                                        + Add Question
                                     </button>
                                 </div>
-                                <hr />
-                                {(() => {
-                                    switch (question.type) {
-                                        case 'multiple-choice':
-                                            return (
-                                                <MultipleChoiceQuestion
-                                                    question={question}
-                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
-                                                />
-                                            );
-                                        case 'true-false':
-                                            return (
-                                                <TrueFalseQuestion
-                                                    question={question}
-                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
-                                                />
-                                            );
-                                        case 'fill-in-blank':
-                                            return (
-                                                <FillInBlankQuestion
-                                                    question={question}
-                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
-                                                />
-                                            );
-                                        default:
-                                            return null;
-                                    }
-                                })()}
+
+                                {/* question list */}
+                                {quiz.questions.map((question, index) => (
+                                    <div key={question.id} className="card mb-3">
+                                        <div className="card-body">
+                                            <div className="d-flex justify-content-between">
+                                                <div>
+
+                                                    <h5 className="card-title text-dark">
+                                                        Question {index + 1}
+                                                    </h5>
+                                                    <p className="text-muted">
+                                                        {question.type === 'multiple-choice' ? 'Multiple Choice Question' : question.type === 'true-false' ? 'True/False Question' : question.type === 'fill-in-blank' ? 'Fill-in-the-Blank Question' : 'Unknown Question Type'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <hr />
+                                            {(() => {
+                                                switch (question.type) {
+                                                    case 'multiple-choice':
+                                                        return (
+                                                            <MultipleChoiceQuestion
+                                                                question={question}
+                                                                onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                                onDelete={() => deleteQuestion(question.id)}
+
+                                                            />
+                                                        );
+                                                    case 'true-false':
+                                                        return (
+                                                            <TrueFalseQuestion
+                                                                question={question}
+                                                                onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                                onDelete={() => deleteQuestion(question.id)}
+                                                            />
+                                                        );
+                                                    case 'fill-in-blank':
+                                                        return (
+                                                            <FillInBlankQuestion
+                                                                question={question}
+                                                                onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                                onDelete={() => deleteQuestion(question.id)}
+                                                            />
+                                                        );
+                                                    default:
+                                                        return null;
+                                                }
+                                            })()}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    ))}
+                    </div>
                 </div>
+            </div>
+
+            {/* Move cancel/save buttons outside of tab content */}
+            <div className="d-flex justify-content-end mt-4">
+                <button onClick={handleCancel} className="btn btn-secondary me-2">Cancel</button>
+                <button onClick={handleSave} className="btn btn-primary btn-danger">Save</button>
             </div>
         </div>
     );
