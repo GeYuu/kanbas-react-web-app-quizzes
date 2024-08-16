@@ -38,3 +38,9 @@ export const updateQuiz = async (courseId: string, quiz: any) => {
         .put(`${QUIZ_API}/quizzes/${quiz._id}`, quiz);
     return response.data;
 }
+
+export const publishQuiz = async (courseId: string, quizId: string) => {
+    const response = await axios
+        .put(`${QUIZ_API}/quizzes/${quizId}/publish`);
+    return response.data;
+}

@@ -6,3 +6,15 @@
     color: black !important;
 
 }
+
+.quiz-context-menu {
+    position: absolute;
+    z-index: 9999;
+    /* High z-index to ensure it's on top */
+    background-color: white;
+    /* Ensure it's visible */
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    border-radius: 4px;
+}

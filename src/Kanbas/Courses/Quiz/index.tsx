@@ -5,14 +5,16 @@ import { PiRocketLaunchBold } from "react-icons/pi";
 import { VscTriangleDown } from "react-icons/vsc";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import GreenCheckmark from "./GreenCheckmark";
-import ModuleControlButtons from "./ModuleControlButtons";
 import * as client from "./client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { setQuizzes } from "./reducer";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteQuiz } from "./reducer";
 import { format } from 'date-fns';
 import { RootState } from "../../store";
+import { MdDoNotDisturbAlt } from "react-icons/md";
+import QuizContextMenu from "./QuizContextMenu";
+import './styles.css';
 
 interface User {
     _id: string;
@@ -24,6 +26,9 @@ export default function Quizzes() {
     const { cid } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    
+    const [contextMenuQuizId, setContextMenuQuizId] = useState<string | null>(null); // Manage context menu state
     const quizzes = useSelector((state: any) => state.quizzes.quizzes.filter((a: any) => a.course === cid));
     const currentUser = useSelector((state: RootState) => state.accountReducer.currentUser) as User | null;
     const fetchQuizzes = async () => {
@@ -39,6 +44,15 @@ export default function Quizzes() {
         if (window.confirm("Are you sure you want to delete this quiz?")) {
             removeQuiz(id);
         }
+    }
+
+    const handlePublishQuiz = async (quizId: string) => {
+        await client.publishQuiz(cid as string, quizId);
+        fetchQuizzes();
+    }
+
+    const handleEditQuiz = (quizId: string) => {
+        navigate(`/Kanbas/Courses/${cid}/quizzes/edit/${quizId}`);
     }
 
     const removeQuiz = async (quizId: string) => {
@@ -90,14 +104,11 @@ export default function Quizzes() {
                             placeholder="Search for quizzes" />
                     </div>
                     <div className="col-6 d-flex justify-content-end">
-                        <div className="input-group-append me-3">
+                        <div className="input-group-append ">
                             <button className="btn btn-danger"
                                 onClick={handleCreateQuiz}>
                                 + Quiz</button>
                         </div>
-                        <button className="btn btn-secondary">
-                            <BsGripVertical />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -107,7 +118,7 @@ export default function Quizzes() {
                     <div className="wd-title p-3 ps-2">
                         <VscTriangleDown className="me-2 fs-3" />
                         Quizzes
-                        <ModuleControlButtons />
+                     
                     </div>
                     <ul className="wd-lessons list-group rounded-0">
                         {quizzes.map((quiz: any) => (
@@ -117,7 +128,7 @@ export default function Quizzes() {
                                         <PiRocketLaunchBold className="ms-4 me-2 fs-3 text-success" />
                                     </div>
                                     <div className="w-75">
-                                        <Link className="text-decoration-none text-dark" to={`/Kanbas/Courses/${cid}/quizzes/${quiz._id}`}>
+                                        <Link className="text-decoration-none text-dark" to={`/Kanbas/Courses/${cid}/quizzes/details/${quiz._id}`}>
                                             <div className="d-flex justify-content-between"><b>{quiz.title}</b></div>
                                         </Link>
                                         <span className="text-secondary">
@@ -144,15 +155,29 @@ export default function Quizzes() {
                                             </span>
                                         </span>
                                     </div>
-                                    <div className="float-end">
-                                        <FaTrash
-                                            className="text-danger me-2 mb-1"
-                                            onClick={() => handleDeleteQuiz(quiz._id)}
-                                        />
-                                        <GreenCheckmark />
-                                        <IoEllipsisVertical className="fs-4"
-                                            onClick={() => handleDeleteQuiz(quiz._id)}
-                                        />
+                                    <div className="float-end position-relative">
+
+                                        {/* publish */}
+                                        <button 
+                                        className="btn btn-link text-dark fs-4"
+                                        onClick={() => handlePublishQuiz(quiz._id)}
+                                        
+                                        >
+                                            {quiz.published ? <GreenCheckmark /> : <MdDoNotDisturbAlt />}
+                                        </button>
+
+       
+                                        <IoEllipsisVertical className="fs-4" onClick={() => setContextMenuQuizId(quiz._id)} />
+                                        {contextMenuQuizId === quiz._id && (
+                                            <QuizContextMenu
+                                                quizId={quiz._id}
+                                                onClose={() => setContextMenuQuizId(null)}
+                                                onEdit={() => handleEditQuiz(quiz._id)}
+                                                onPublish={() => {handlePublishQuiz(quiz._id)}}
+                                                onDelete={() => handleDeleteQuiz(quiz._id)}
+                                                
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </li>

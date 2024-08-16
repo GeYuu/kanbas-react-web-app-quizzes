@@ -5,8 +5,13 @@ import { addQuiz, updateQuiz } from "./reducer";
 import * as client from "./client";
 import { BsGripVertical } from "react-icons/bs";
 import { MdDoNotDisturbAlt } from "react-icons/md";
+import GreenCheckmark from "./GreenCheckmark";
 import './styles.css';
 import Editor from 'react-simple-wysiwyg';
+import { format } from 'date-fns';
+import MultipleChoiceQuestion from "./MultipleChoiceQuestion";
+import TrueFalseQuestion from "./TrueFalseQuestion";
+import FillInBlankQuestion from "./FillInBlankQuestion";
 
 type Quiz = {
     quizType: string;
@@ -30,13 +35,15 @@ type Quiz = {
     dueDate?: string;
     availableFrom?: string;
     availableUntil?: string;
+    published: boolean | string;
+
 
 };
 
 export default function QuizEditor() {
-    const { cid, id } = useParams<{ cid: string, id: string }>();
+    const { cid, qid } = useParams<{ cid: string, qid: string }>();
 
-    console.log(cid, id);
+    console.log(cid, qid);
     const quizzes = useSelector(
         (state: { quizzes: { quizzes: Quiz[] } }) => state.quizzes.quizzes);
     const [html, setHtml] = useState('');
@@ -54,7 +61,15 @@ export default function QuizEditor() {
         dispatch(updateQuiz(updatedQuiz));
     }
 
-    const existingQuiz = quizzes.find(a => a._id === id);
+    const existingQuiz = quizzes.find(a => a._id === qid);
+
+    console.log("existingQuiz", existingQuiz);
+
+    const formatDateForInput = (dateString = '') => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return format(date, "yyyy-MM-dd'T'HH:mm");
+    };
 
     const [quiz, setQuiz] = useState<Quiz>({
         quizType: existingQuiz?.quizType || 'Graded Quiz',
@@ -75,9 +90,10 @@ export default function QuizEditor() {
         questions: existingQuiz?.questions || [],
         description: existingQuiz?.description || '',
         points: existingQuiz?.points || 0,
-        dueDate: '',
-        availableFrom: '',
-        availableUntil: ''
+        dueDate: formatDateForInput(existingQuiz?.dueDate),
+        availableFrom: formatDateForInput(existingQuiz?.availableFrom),
+        availableUntil: formatDateForInput(existingQuiz?.availableUntil),
+        published: existingQuiz?.published || 'false',
     });
 
     const handleCancel = () => {
@@ -86,7 +102,7 @@ export default function QuizEditor() {
 
     const handleSave = () => {
 
-        if (id && existingQuiz) {
+        if (qid && existingQuiz) {
             saveQuiz({ ...quiz, course: cid });
         } else {
             createQuiz({ ...quiz, course: cid });
@@ -104,9 +120,29 @@ export default function QuizEditor() {
     };
 
 
-    function onChange(e: any) {
-        setHtml(e.target.value);
-    }
+    const addNewQuestion = (type: string) => {
+        const newQuestion = {
+            id: new Date().getTime().toString(),
+            type,
+            title: '',
+            points: 0,
+            questionText: '',
+            choices: type === 'multiple-choice' ? [{ text: '', isCorrect: false }] : [],
+            isTrue: type === 'true-false' ? true : undefined,
+            correctAnswers: type === 'fill-in-blank' ? [{ id: new Date().getTime().toString(), text: '' }] : [],
+        };
+        setQuiz({ ...quiz, questions: [...quiz.questions, newQuestion] });
+    };
+
+    const updateQuestion = (index: number, updatedQuestion: any) => {
+        const updatedQuestions = quiz.questions.map((q, i) =>
+            i === index ? updatedQuestion : q
+        );
+        setQuiz({ ...quiz, questions: updatedQuestions });
+    };
+
+
+
 
 
 
@@ -121,16 +157,32 @@ export default function QuizEditor() {
                 </div>
                 <div className="col-auto">
                     <span className="text-muted">
-                        <MdDoNotDisturbAlt
-                            style={{ color: "gray" }}
-                            className="me-2" />
 
-                        Not Published</span>
-                </div>
-                <div className="col-auto">
-                    <button className="btn btn-light">
-                        <BsGripVertical />
-                    </button>
+                        {/* if the quiz is published, show a green checkmark
+                        if the quiz is not published, show a gray MdDoNotDisturbAlt
+                         */}
+
+
+
+
+
+                        {quiz.published === true ? (
+                            <span className="text-success me-2">
+                                <GreenCheckmark />
+                                Published</span>
+
+
+
+                        ) : (
+                            <span className="text-secondary me-2">
+                                <MdDoNotDisturbAlt />
+                                Not Published</span>
+                        )}
+
+                    </span>
+
+
+
                 </div>
             </div>
 
@@ -171,8 +223,7 @@ export default function QuizEditor() {
                             <Editor
                                 value={quiz.description}
                                 className="editor"
-                                onChange={handleChange}
-
+                                onChange={(e) => setQuiz({ ...quiz, description: e.target.value })}
                             />
 
                         </div>
@@ -296,10 +347,10 @@ export default function QuizEditor() {
                                         type="checkbox"
                                         value={quiz.allowMultipleAttempts}
                                         onChange={handleChange}
-                                        id="AllowMultipleAttempts"
+                                        id="allowMultipleAttempts"
                                     />
                                     <label className="form-check-label"
-                                        htmlFor="AllowMultipleAttempts">
+                                        htmlFor="allowMultipleAttempts">
                                         Allow Multiple Attempts
                                     </label>
                                 </div>
@@ -313,9 +364,9 @@ export default function QuizEditor() {
                                         type="checkbox"
                                         value={quiz.showCorrectedAnswers}
                                         onChange={handleChange}
-                                        id="ShowCorrectedAnswers"
+                                        id="showCorrectedAnswers"
                                     />
-                                    <label className="form-check-label" htmlFor="ShowCorrectedAnswers">
+                                    <label className="form-check-label" htmlFor="showCorrectedAnswers">
                                         Show Corrected Answers
                                     </label>
                                 </div>
@@ -331,9 +382,9 @@ export default function QuizEditor() {
                                             type="checkbox"
                                             value={quiz.accessCode}
                                             onChange={handleChange}
-                                            id="AccessCode"
+                                            id="accessCode"
                                         />
-                                        <label className="form-check-label me-5" htmlFor="AccessCode">
+                                        <label className="form-check-label me-5" htmlFor="accessCode">
                                             Access Code
                                         </label>
                                         <input
@@ -471,12 +522,80 @@ export default function QuizEditor() {
                     </div>
                 </div>
                 <div className="tab-pane fade" id="questions">
-                    {/* <QuestionsTab /> */}
+
+                    <button
+                        className="btn btn-secondary mb-3"
+                        onClick={() => addNewQuestion('multiple-choice')}
+                    >
+                        + New Multiple Choice Question
+                    </button>
+                    <button
+                        className="btn btn-secondary mb-3 ms-2"
+                        onClick={() => addNewQuestion('true-false')}
+                    >
+                        + New True/False Question
+                    </button>
+                    <button
+                        className="btn btn-secondary mb-3 ms-2"
+                        onClick={() => addNewQuestion('fill-in-blank')}
+                    >
+                        + New Fill-in-the-Blank Question
+                    </button>
+
+
+
+
+
+
+
+                    {quiz.questions.map((question, index) => (
+                        <div key={question.id} className="card mb-3">
+                            <div className="card-body">
+                                <div className="d-flex justify-content-between">
+                                    <h5 className="card-title">Question {index + 1}</h5>
+                                    <button
+                                        className="btn btn-danger"
+                                        onClick={() => {
+                                            const updatedQuestions = quiz.questions.filter((_, i) => i !== index);
+                                            setQuiz({ ...quiz, questions: updatedQuestions });
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                                <hr />
+                                {(() => {
+                                    switch (question.type) {
+                                        case 'multiple-choice':
+                                            return (
+                                                <MultipleChoiceQuestion
+                                                    question={question}
+                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                />
+                                            );
+                                        case 'true-false':
+                                            return (
+                                                <TrueFalseQuestion
+                                                    question={question}
+                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                />
+                                            );
+                                        case 'fill-in-blank':
+                                            return (
+                                                <FillInBlankQuestion
+                                                    question={question}
+                                                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                                                />
+                                            );
+                                        default:
+                                            return null;
+                                    }
+                                })()}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
-
-
-
-        </div >
+        </div>
     );
 }
