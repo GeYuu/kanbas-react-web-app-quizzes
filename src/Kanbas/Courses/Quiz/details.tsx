@@ -3,14 +3,21 @@ import { RootState } from "../../store";
 import { FaPencilAlt } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router";
 import { format, parseISO } from 'date-fns';
-
-
+import { NumOfAttempts, findQuizTakenByUserId, findAllQuizzesTakenByQuizIdAndUserId } from './client';
+import { useState, useEffect } from 'react';
 
 
 interface User {
     _id: string;
     username: string;
     role: string;
+}
+
+interface Attempt {
+    score: number;
+    timestamp: string;
+    status: string;
+
 }
 
 export default function QuizDetails() {
@@ -20,6 +27,22 @@ export default function QuizDetails() {
     const quiz = useSelector((state: any) => state.quizzes.quizzes.find((q: any) => q._id === qid));
     const navigate = useNavigate();
 
+    const [attemptsNumber, setAttemptsNumber] = useState<number>(0);
+    const [quizTakenByQuizIdAndUserId, setQuizTakenByQuizIdAndUserId] = useState<any | null>(null);
+
+
+
+
+    useEffect(() => {
+        getNumOfAttempts().then(setAttemptsNumber);
+        getQuizTakenByQuizIdAndUserId().then(setQuizTakenByQuizIdAndUserId);
+    }, []);
+
+    // Prevent students from accessing unpublished quizzes
+    if (currentUser?.role === 'student' && !quiz.published) {
+        navigate(`/Kanbas/Courses/${quiz.course}/quizzes`);
+        return null;
+    }
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'N/A'; // Handle cases where the date might be undefined or null
@@ -32,6 +55,37 @@ export default function QuizDetails() {
 
         return format(parsedDate, 'MMM d \'at\' h:mmaaa');
     };
+
+    const handleTakeQuiz = async () => {
+        const numOfAttempts = await getNumOfAttempts();
+        console.log("numOfAttempts", numOfAttempts);
+        console.log("quiz.attemptLimit", quiz.attemptLimit);
+        if (numOfAttempts < quiz.attemptLimit) {
+            console.log("numOfAttempts", numOfAttempts);
+            console.log("attemptLimit", quiz.attemptLimit);
+            navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz`);
+        } else {
+            alert("You have reached the maximum number of attempts for this quiz.");
+        }
+    }
+
+    const getNumOfAttempts = async () => {
+        const numOfAttempts = await NumOfAttempts(qid as string, currentUser?._id as string);
+        return numOfAttempts.attempts;
+    }
+
+
+    const getQuizTakenByQuizIdAndUserId = async () => {
+        const quizTakenByQuizIdAndUserId = await findAllQuizzesTakenByQuizIdAndUserId(qid as string, currentUser?._id as string);
+
+        return quizTakenByQuizIdAndUserId;
+    }
+
+
+
+
+
+
 
 
     return (
@@ -46,24 +100,38 @@ export default function QuizDetails() {
                         {/* // quiz controls
             //for faculty, show edit and review
             //for students, show take quiz */}
+
                         {currentUser?.role === "FACULTY" ? (
                             <>
                                 <button className="btn me-2 btn-secondary"
-                                onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/preview`)}
+                                    onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/preview`)}
 
 
-                            
+
                                 >Preview</button>
                                 <button className="btn btn-secondary"
                                     onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/edit/${quiz._id}`)}
                                 >
-                                    <FaPencilAlt className="me-2" 
+                                    <FaPencilAlt className="me-2"
                                     />
                                     Edit</button>
                             </>
                         ) : (
-                            <button className="btn btn-secondary
-                            ">Take Quiz</button>
+                            <div className="d-flex justify-content-center">
+                                <div className="text-center">
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => handleTakeQuiz()}
+                                        disabled={attemptsNumber >= quiz.attemptLimit}
+                                    >
+                                        {attemptsNumber >= quiz.attemptLimit ? "Attempt Limit Reached" : "Take Quiz"}
+                                    </button>
+                                    <p className="mt-2">
+                                        Attempts: {attemptsNumber} / {quiz.attemptLimit}
+                                    </p>
+                                </div>
+                            </div>
+
                         )}
 
                     </div>
@@ -142,6 +210,16 @@ export default function QuizDetails() {
                             >{quiz.allowMultipleAttempts ? "Yes" : "No"}</p>
                         </div>
 
+                        {/* attempt limit */}
+                        <div className="quiz-details-attemptLimit  row 
+                            ">
+                            <h5 className="col-md-4 text-end"
+                            ><b>Attempt Limit</b></h5>
+                            <p className="col-md-6"
+                            >{quiz.attemptLimit}</p>
+                        </div>
+
+
 
                         {/* show correct answers */}
                         <div className="quiz-details-showCorrectAnswers  row 
@@ -217,6 +295,30 @@ export default function QuizDetails() {
                             </table>
                         </div>
                     </>
+                )}
+
+                {currentUser?.role === "STUDENT" && (
+                    <div className="previous-attempts mt-4">
+                        <h4>Previous Attempts</h4>
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Attempt</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {quizTakenByQuizIdAndUserId !== null && quizTakenByQuizIdAndUserId.length > 0 && (
+                                    quizTakenByQuizIdAndUserId.map((quizTaken: any, index: number) =>
+                                        <tr onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz/Result`, { state: { result: quizTaken } })} style={{ cursor: 'pointer' }}>
+                                            <td>{index + 1}</td>
+                                            <td>{quizTaken.scorePercentage}% ({quizTaken.pointsEarned} / {quizTaken.totalPoints})</td>
+                                        </tr>
+                                    )
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </div>

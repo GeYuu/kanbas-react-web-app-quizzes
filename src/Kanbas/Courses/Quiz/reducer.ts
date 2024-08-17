@@ -5,14 +5,17 @@ interface Quiz {
     name: string;
     course: string;
     questions: string[];
+    attempts: { [key: string]: number };
 }
 
 interface QuizzesState {
     quizzes: Quiz[];
+    attempts: { [key: string]: number };
 }
 
 const initialState: QuizzesState = {
     quizzes: [],
+    attempts: {},
 };
 
 const quizzesSlice = createSlice({

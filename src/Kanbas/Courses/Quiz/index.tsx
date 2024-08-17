@@ -14,12 +14,27 @@ import { format } from 'date-fns';
 import { RootState } from "../../store";
 import { MdDoNotDisturbAlt } from "react-icons/md";
 import QuizContextMenu from "./QuizContextMenu";
+import { useCallback } from "react";
+
 import './styles.css';
 
 interface User {
     _id: string;
     username: string;
     role: string;
+}
+
+interface Quiz {
+    _id: string;
+    title: string;
+    published: boolean;
+    availableFrom: string;
+    availableUntil: string;
+    dueDate: string;
+    points: number;
+    questions: any[];
+    scores: Record<string, number>;
+    course: string;
 }
 
 export default function Quizzes() {
@@ -31,12 +46,34 @@ export default function Quizzes() {
     const [contextMenuQuizId, setContextMenuQuizId] = useState<string | null>(null); // Manage context menu state
     const quizzes = useSelector((state: any) => state.quizzes.quizzes.filter((a: any) => a.course === cid));
     const currentUser = useSelector((state: RootState) => state.accountReducer.currentUser) as User | null;
-    const fetchQuizzes = async () => {
-        const quizzes = await client.findQuizzesForCourse(cid as string);
-        dispatch(setQuizzes(quizzes));
-    }
+    const [lastAttemptScores, setLastAttemptScores] = useState<Record<string, number>>({});
+
 
     
+
+    const fetchQuizzes = useCallback(async () => {
+        const fetchedQuizzes = await client.findQuizzesForCourse(cid as string);
+        dispatch(setQuizzes(fetchedQuizzes));
+    }, [cid, dispatch]);
+
+    const getLastAttemptScores = useCallback(async () => {
+        if (quizzes.length > 0 && currentUser?._id) {
+            const scores = await Promise.all(quizzes.map(async (quiz: Quiz) => {
+                const result = await client.findLastAttemptScore(quiz._id, currentUser._id);
+                return { quizId: quiz._id, score: result.score };
+            }));
+            setLastAttemptScores(Object.fromEntries(scores.map(({ quizId, score }) => [quizId, score])));
+        }
+    }, [quizzes, currentUser]);
+
+    useEffect(() => {
+        fetchQuizzes();
+    }, [fetchQuizzes]);
+
+    useEffect(() => {
+        getLastAttemptScores();
+    }, [getLastAttemptScores]);
+
     const handleCreateQuiz = () => {
         navigate(`/Kanbas/Courses/${cid}/quizzes/new`);
     }
@@ -91,9 +128,8 @@ export default function Quizzes() {
         }
     };
 
-    useEffect(() => {
-        fetchQuizzes();
-    }, [cid]);
+
+
 
     return (
         <div>
@@ -105,11 +141,13 @@ export default function Quizzes() {
                             placeholder="Search for quizzes" />
                     </div>
                     <div className="col-6 d-flex justify-content-end">
-                        <div className="input-group-append ">
-                            <button className="btn btn-danger"
-                                onClick={handleCreateQuiz}>
-                                + Quiz</button>
-                        </div>
+                        {currentUser?.role === 'FACULTY' && (
+                            <div className="input-group-append ">
+                                <button className="btn btn-danger"
+                                    onClick={handleCreateQuiz}>
+                                    + Quiz</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -122,7 +160,7 @@ export default function Quizzes() {
                      
                     </div>
                     <ul className="wd-lessons list-group rounded-0">
-                        {quizzes.map((quiz: any) => (
+                        {quizzes.filter((quiz: Quiz) => currentUser?.role === 'FACULTY' || quiz.published).map((quiz: Quiz) => (
                             <li key={quiz._id} className="wd-lesson list-group-item p-3 ps-1">
                                 <div className="d-flex align-items-center justify-content-between">
                                     <div className="d-flex align-items-center">
@@ -147,36 +185,33 @@ export default function Quizzes() {
                                             <span> | </span>
                                             {/* Number of questions */}
                                             <span>{quiz.questions.length} questions</span>
-                                            {/* Score */}
-                                            {/* only if current user is student, show */}
-                                            <span>
-                                                {currentUser?.role === 'student' && quiz.scores && quiz.scores[currentUser._id] &&
-                                                    <span> |  {quiz.scores[currentUser._id].score} / {quiz.points}</span>}
-
-                                            </span>
+                                            {/* Score (only for students) */}
+                                            {currentUser?.role === 'STUDENT' && lastAttemptScores[quiz._id] !== undefined && lastAttemptScores[quiz._id] !== null  && (
+                                                <span> | Score: {lastAttemptScores[quiz._id]}</span>
+                                            )}
                                         </span>
                                     </div>
                                     <div className="float-end position-relative">
-
                                         {/* publish */}
-                                        <button 
-                                        className="btn btn-link text-dark fs-4"
-                                        onClick={() => handlePublishQuiz(quiz._id)}
-                                        
-                                        >
-                                            {quiz.published ? <GreenCheckmark /> : <MdDoNotDisturbAlt />}
-                                        </button>
-
-       
-                                        <IoEllipsisVertical className="fs-4" onClick={() => setContextMenuQuizId(quiz._id)} />
+                                        {currentUser?.role !== 'STUDENT' && (
+                                            <button 
+                                                className="btn btn-link text-dark fs-4"
+                                                onClick={() => handlePublishQuiz(quiz._id)}
+                                            >
+                                                {quiz.published ? <GreenCheckmark /> : <MdDoNotDisturbAlt />}
+                                            </button>
+                                        )}
+                                        {currentUser?.role !== 'STUDENT' && (
+                                            <IoEllipsisVertical className="fs-4" onClick={() => setContextMenuQuizId(quiz._id)} />
+                                        )}
                                         {contextMenuQuizId === quiz._id && (
                                             <QuizContextMenu
                                                 quizId={quiz._id}
                                                 onClose={() => setContextMenuQuizId(null)}
                                                 onEdit={() => handleEditQuiz(quiz._id)}
-                                                onPublish={() => {handlePublishQuiz(quiz._id)}}
+                                                onPublish={() => handlePublishQuiz(quiz._id)}
                                                 onDelete={() => handleDeleteQuiz(quiz._id)}
-                                                
+                                                isPublished={quiz.published}
                                             />
                                         )}
                                     </div>

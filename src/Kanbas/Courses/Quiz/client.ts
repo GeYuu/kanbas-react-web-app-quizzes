@@ -44,3 +44,54 @@ export const publishQuiz = async (courseId: string, quizId: string) => {
         .put(`${QUIZ_API}/quizzes/${quizId}/publish`);
     return response.data;
 }
+
+export const submitQuiz = async (quizTaken: any, quizId: string) => {
+    const response = await axios
+        .post(`${QUIZ_API}/quizzes-taken`, quizTaken);
+    return response.data;
+}
+
+export const findQuizTakenByQuizId = async (quizId: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/${quizId}`);
+    return response.data;
+}
+
+export const findQuizTakenById = async (id: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/${id}`);
+    return response.data;
+}
+
+export const NumOfAttempts = async (quizId: string, userId: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/num-of-attempts/${quizId}/${userId}`);
+    return response.data;
+}
+
+export const findQuizTakenByUserId = async (userId: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/student/${userId}`);
+    return response.data;
+}
+
+export const findLastAttemptScore = async (quizId: string, userId: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/last-attempt-score/${quizId}/${userId}`);
+    return response.data;
+}
+
+export const findAllQuizzesTakenByQuizIdAndUserId = async (quizId: string, userId: string) => {
+    const response = await axios
+        .get(`${QUIZ_API}/quizzes-taken/all/${quizId}/${userId}`);
+    return response.data;
+}
+
+
+
+
+
+
+
+
+

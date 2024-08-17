@@ -16,16 +16,17 @@ import FillInBlankQuestion from "./FillInBlankQuestion";
 type Quiz = {
     quizType: string;
     assignmentgroup: string;
-    shuffleAnswers: string;
-    timeLimit: string;
+    shuffleAnswers: boolean;
+    timeLimit: boolean;
     timeLimitEntry: number;
-    allowMultipleAttempts: string;
-    showCorrectedAnswers: string;
-    accessCode: string;
+    attemptLimit: number;
+    allowMultipleAttempts: boolean;
+    showCorrectedAnswers: boolean;
+    accessCode: boolean;
     accessCodeEntry: number;
-    oneQuestionAtATime: string;
-    webCamRequired: string;
-    lockQuestionsAfterAnswering: string;
+    oneQuestionAtATime: boolean;
+    webCamRequired: boolean;
+    lockQuestionsAfterAnswering: boolean;
     _id: string;
     title: string;
     course: string;
@@ -35,7 +36,7 @@ type Quiz = {
     dueDate?: string;
     availableFrom?: string;
     availableUntil?: string;
-    published: boolean | string;
+    published: boolean;
 
 
 };
@@ -74,16 +75,17 @@ export default function QuizEditor() {
     const [quiz, setQuiz] = useState<Quiz>({
         quizType: existingQuiz?.quizType || 'Graded Quiz',
         assignmentgroup: existingQuiz?.assignmentgroup || 'Quizzes',
-        shuffleAnswers: existingQuiz?.shuffleAnswers ?? 'true',
-        timeLimit: existingQuiz?.timeLimit || 'true',
+        shuffleAnswers: existingQuiz?.shuffleAnswers ?? true,
+        timeLimit: existingQuiz?.timeLimit ?? true,
         timeLimitEntry: existingQuiz?.timeLimitEntry || 20,
-        allowMultipleAttempts: existingQuiz?.allowMultipleAttempts || 'false',
-        showCorrectedAnswers: existingQuiz?.showCorrectedAnswers || 'false',
-        accessCode: existingQuiz?.accessCode || 'false',
+        attemptLimit: existingQuiz?.attemptLimit || 1,
+        allowMultipleAttempts: existingQuiz?.allowMultipleAttempts ?? false,
+        showCorrectedAnswers: existingQuiz?.showCorrectedAnswers ?? false,
+        accessCode: existingQuiz?.accessCode ?? false,
         accessCodeEntry: existingQuiz?.accessCodeEntry || 0,
-        oneQuestionAtATime: existingQuiz?.oneQuestionAtATime || 'true',
-        webCamRequired: existingQuiz?.webCamRequired || 'false',
-        lockQuestionsAfterAnswering: existingQuiz?.lockQuestionsAfterAnswering || 'false',
+        oneQuestionAtATime: existingQuiz?.oneQuestionAtATime ?? false,
+        webCamRequired: existingQuiz?.webCamRequired ?? false,
+        lockQuestionsAfterAnswering: existingQuiz?.lockQuestionsAfterAnswering ?? false,
         _id: existingQuiz?._id || new Date().getTime().toString(),
         title: existingQuiz?.title || "unnamed quiz",
         course: existingQuiz?.course || cid!,
@@ -93,7 +95,7 @@ export default function QuizEditor() {
         dueDate: formatDateForInput(existingQuiz?.dueDate),
         availableFrom: formatDateForInput(existingQuiz?.availableFrom),
         availableUntil: formatDateForInput(existingQuiz?.availableUntil),
-        published: existingQuiz?.published || 'false',
+        published: existingQuiz?.published ?? false,
     });
 
     const handleCancel = () => {
@@ -111,13 +113,14 @@ export default function QuizEditor() {
         navigate(`/Kanbas/Courses/${cid}/quizzes`);
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | any>) => {
-        const { id, value, type, checked } = e.target;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { id, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
 
-        setQuiz({
-            ...quiz,
+        setQuiz(prevQuiz => ({
+            ...prevQuiz,
             [id]: type === 'checkbox' ? checked : value
-        });
+        }));
     };
 
 
@@ -129,7 +132,7 @@ export default function QuizEditor() {
             points: 0,
             questionText: '',
             choices: type === 'multiple-choice' ? [{ text: '', isCorrect: false }] : [],
-            isTrue: type === 'true-false' ? true : undefined,
+            isTrue: type === 'true-false' ? true : false,
             correctAnswers: type === 'fill-in-blank' ? [{ id: new Date().getTime().toString(), text: '' }] : [],
         };
         setQuiz({ ...quiz, questions: [...quiz.questions, newQuestion] });
@@ -296,13 +299,12 @@ export default function QuizEditor() {
                                     <input
                                         className="form-check-input me-2 col-md-6"
                                         type="checkbox"
-                                        value={quiz.shuffleAnswers}
-                                        onChange={handleChange}
-                                        id="ShuffleAnswers"
-                                        defaultChecked
+                                        checked={quiz.shuffleAnswers === true}
+                                        onChange={(e) => setQuiz({ ...quiz, shuffleAnswers: e.target.checked })}
+                                        id="shuffleAnswers"
                                     />
                                     <label className="form-check-label mb-0 col-md-6"
-                                        htmlFor="ShuffleAnswers">
+                                        htmlFor="shuffleAnswers">
                                         Shuffle Answers
                                     </label>
                                 </div>
@@ -319,13 +321,12 @@ export default function QuizEditor() {
                                         <input
                                             className="form-check-input me-2"
                                             type="checkbox"
-                                            value={quiz.timeLimit}
-                                            onChange={handleChange}
-                                            id="TimeLimit"
-                                            defaultChecked
+                                            checked={quiz.timeLimit === true}
+                                            onChange={(e) => setQuiz({ ...quiz, timeLimit: e.target.checked })}
+                                            id="timeLimit"
                                         />
                                         <label className="form-check-label me-4"
-                                            htmlFor="TimeLimit">
+                                            htmlFor="timeLimit">
                                             Time Limit
                                         </label>
                                         <input
@@ -352,16 +353,30 @@ export default function QuizEditor() {
                                 <div className="col-md-4">
                                 </div>
                                 <div className="col-md-8">
+                                    <div className="d-flex align-items-center mb-2">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        value={quiz.allowMultipleAttempts}
-                                        onChange={handleChange}
+                                        checked={quiz.allowMultipleAttempts === true}
+                                        onChange={(e) => setQuiz({ ...quiz, allowMultipleAttempts: e.target.checked })}
                                         id="allowMultipleAttempts"
                                     />
-                                    <label className="form-check-label"
-                                        htmlFor="allowMultipleAttempts">
-                                        Allow Multiple Attempts
-                                    </label>
+                                    
+                                        <label className="form-check-label me-4"
+                                            htmlFor="allowMultipleAttempts">
+                                            Allow Multiple Attempts
+                                        </label>
+                                        <input
+                                            id="attemptLimit"
+                                            type="number"
+                                            value={quiz.attemptLimit}
+                                            onChange={handleChange}
+                                            className="form-control me-2"
+                                            style={{ width: '80px' }}
+                                        />
+                                        <label htmlFor="attemptLimit">Attempt Limit</label>
+
+
+                                    </div>
                                 </div>
                             </div>
 
@@ -371,8 +386,8 @@ export default function QuizEditor() {
                                 <div className="col-md-8">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        value={quiz.showCorrectedAnswers}
-                                        onChange={handleChange}
+                                        checked={quiz.showCorrectedAnswers === true}
+                                        onChange={(e) => setQuiz({ ...quiz, showCorrectedAnswers: e.target.checked })}
                                         id="showCorrectedAnswers"
                                     />
                                     <label className="form-check-label" htmlFor="showCorrectedAnswers">
@@ -389,8 +404,8 @@ export default function QuizEditor() {
                                         <input
                                             className="form-check-input me-2"
                                             type="checkbox"
-                                            value={quiz.accessCode}
-                                            onChange={handleChange}
+                                            checked={quiz.accessCode === true}
+                                            onChange={(e) => setQuiz({ ...quiz, accessCode: e.target.checked })}
                                             id="accessCode"
                                         />
                                         <label className="form-check-label me-5" htmlFor="accessCode">
@@ -418,10 +433,9 @@ export default function QuizEditor() {
                                 <div className="col-md-8">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        value={quiz.oneQuestionAtATime}
-                                        onChange={handleChange}
+                                        checked={quiz.oneQuestionAtATime}
+                                        onChange={(e) => setQuiz({ ...quiz, oneQuestionAtATime: e.target.checked })}
                                         id="oneQuestionAtATime"
-                                        defaultChecked
                                     />
                                     <label className="form-check-label" htmlFor="oneQuestionAtATime">
                                         One Question at a Time
@@ -436,8 +450,8 @@ export default function QuizEditor() {
                                 <div className="col-md-8">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        value={quiz.webCamRequired}
-                                        onChange={handleChange}
+                                        checked={quiz.webCamRequired === true}
+                                        onChange={(e) => setQuiz({ ...quiz, webCamRequired: e.target.checked })}
                                         id="webCamRequired"
                                     />
                                     <label className="form-check-label" htmlFor="webCamRequired">
@@ -453,8 +467,8 @@ export default function QuizEditor() {
                                 <div className="col-md-8">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        value={quiz.lockQuestionsAfterAnswering}
-                                        onChange={handleChange}
+                                        checked={quiz.lockQuestionsAfterAnswering === true}
+                                        onChange={(e) => setQuiz({ ...quiz, lockQuestionsAfterAnswering: e.target.checked })}
                                         id="lockQuestionsAfterAnswering"
                                     />
                                     <label className="form-check-label" htmlFor="lockQuestionsAfterAnswering">
@@ -614,6 +628,6 @@ export default function QuizEditor() {
                 <button onClick={handleCancel} className="btn btn-secondary me-2">Cancel</button>
                 <button onClick={handleSave} className="btn btn-primary btn-danger">Save</button>
             </div>
-        </div>
+        </div >
     );
 }

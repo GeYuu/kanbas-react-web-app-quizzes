@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { FaExclamationCircle } from "react-icons/fa";
+import { submitQuiz } from "./client";
 
 interface User {
     _id: string;
@@ -12,14 +13,20 @@ interface User {
 }
 
 interface Answer {
-    questionId: string;
-    question: string;
-    answer: string | boolean;
-    correct: string | boolean | { text: string }[];
+    questionID: string;
+    questionTitle: string;
+    questionType: string;
+    questionOptions: any[];
+    selectedAnswer: string | boolean;
+    correctAnswer: string;
+    isCorrect: boolean;
     points: number;
+    questionPoints: number;
+    correct: boolean;
+    answer: string | boolean;
 }
 
-export default function Preview() {
+export default function TakeQuiz() {
     const { cid, qid } = useParams<{ cid: string, qid: string }>();
     const currentUser = useSelector((state: RootState) => state.accountReducer.currentUser) as User | null;
     const quiz = useSelector((state: any) => state.quizzes.quizzes.find((q: any) => q._id === qid));
@@ -38,7 +45,7 @@ export default function Preview() {
         }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const unanswered = quiz.questions.reduce((acc: number[], question: any, index: number) => {
             if (!selectedAnswers[`question-${question.id}`]) {
                 acc.push(index + 1);
@@ -59,44 +66,70 @@ export default function Preview() {
         quiz.questions.forEach((question: any) => {
             const selectedAnswer = selectedAnswers[`question-${question.id}`];
 
-            if (selectedAnswer) {
+            if (selectedAnswer !== undefined) {
                 totalPoints += question.points;
                 let isCorrect = false;
+                let correctAnswer = '';
 
                 if (question.type === "multiple-choice") {
                     const correctChoice = question.choices.find((choice: any) => choice.isCorrect);
                     isCorrect = correctChoice && selectedAnswer === correctChoice.text;
+                    correctAnswer = correctChoice ? correctChoice.text : '';
                 } else if (question.type === "true-false") {
                     isCorrect = selectedAnswer.toLowerCase() === String(question.isTrue).toLowerCase();
+                    correctAnswer = String(question.isTrue);
                 } else if (question.type === "fill-in-blank") {
-                    isCorrect = question.correctAnswers.some((correctAnswer: any) => 
-                        correctAnswer.text.toLowerCase() === selectedAnswer.toLowerCase()
+                    isCorrect = question.correctAnswers.some((correctAns: any) =>
+                        correctAns.text.toLowerCase() === selectedAnswer.toLowerCase()
                     );
+                    correctAnswer = question.correctAnswers[0].text;
                 }
 
                 const earnedPointsForQuestion = isCorrect ? question.points : 0;
                 earnedPoints += earnedPointsForQuestion;
 
                 answers.push({
-                    questionId: question.id,
-                    question: question.title,
-                    answer: selectedAnswer,
+                    questionID: question.id,
+                    questionTitle: question.title,
+                    questionType: question.type,
+                    questionOptions: question.choices || [],
+                    selectedAnswer: selectedAnswer,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    points: earnedPointsForQuestion,
+                    questionPoints: question.points,
                     correct: isCorrect,
-                    points: earnedPointsForQuestion
+                    answer: selectedAnswer
                 });
             }
         });
 
         const score = (earnedPoints / totalPoints) * 100;
-        const result = {
-            answers: answers,
-            score: score,
-            totalPoints: totalPoints,
-            earnedPoints: earnedPoints
-        }
 
-        navigate(`/kanbas/courses/${cid}/quizzes/${qid}/preview/result`, { state: { result } });
+        const quizTakenData = {
+            studentID: currentUser?._id,
+            quizID: qid,
+            scorePercentage: score,
+
+            pointsEarned: earnedPoints,
+            totalPoints: totalPoints,
+
+            answers: answers
+        };
+
+        try {
+            const result = await submitQuiz(quizTakenData, qid as string);
+            console.log('Quiz submitted successfully:', result);
+            // Navigate to result page
+            navigate(`/kanbas/courses/${cid}/quizzes/${qid}/takequiz/result`, { state: { result } });
+        } catch (error) {
+            console.error('Error submitting quiz:', error);
+            // Show error message to user
+            alert('Failed to submit quiz. Please try again.');
+        }
     };
+
+
 
     const handleNextQuestion = () => {
         if (currentQuestionIndex < quiz.questions.length - 1) {
@@ -189,11 +222,6 @@ export default function Preview() {
         <div className="container ">
             <h1>{quiz.title}</h1>
 
-            <div className="alert alert-danger" role="alert">
-                <FaExclamationCircle className="me-2" />
-                <strong>Preview Mode:</strong> This is a preview of the published version of the quiz. Students will see this view when taking the quiz.
-            </div>
-
             <h2>Quiz Instructions</h2>
             <p>{quiz.description}</p>
 
@@ -212,15 +240,15 @@ export default function Preview() {
                         <>
                             {renderQuestion(quiz.questions[currentQuestionIndex], currentQuestionIndex)}
                             <div className="d-flex justify-content-between mt-3">
-                                <button 
-                                    className="btn btn-secondary" 
+                                <button
+                                    className="btn btn-secondary"
                                     onClick={handlePreviousQuestion}
                                     disabled={currentQuestionIndex === 0}
                                 >
                                     Previous
                                 </button>
-                                <button 
-                                    className="btn btn-primary" 
+                                <button
+                                    className="btn btn-primary"
                                     onClick={handleNextQuestion}
                                     disabled={currentQuestionIndex === quiz.questions.length - 1}
                                 >
@@ -237,9 +265,7 @@ export default function Preview() {
             </div>
 
             <div className="d-flex justify-content-center mt-4">
-                <button className="btn btn-primary me-2" onClick={() => navigate(`/kanbas/courses/${cid}/quizzes/edit/${qid}`)}>Edit Quiz</button>
-                <button className="btn btn-primary me-2" onClick={handleSubmit}>Submit Quiz</button>
-                <button className="btn btn-secondary" onClick={() => navigate(-1)}>Back</button>
+                <button className="btn btn-primary" onClick={handleSubmit}>Submit Quiz</button>
             </div>
         </div>
     );

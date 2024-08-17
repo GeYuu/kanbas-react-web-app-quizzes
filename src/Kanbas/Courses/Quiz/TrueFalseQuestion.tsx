@@ -8,7 +8,7 @@ type TrueFalseQuestionProps = {
     title: string;
     points: number;
     questionText: string;
-    correctAnswer: boolean;
+    isTrue: boolean;
   };
   onUpdate: (updatedQuestion: any) => void;
   onDelete: (questionId: string) => void;
@@ -18,7 +18,7 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
   const [title, setTitle] = useState(question.title);
   const [points, setPoints] = useState(question.points);
   const [questionText, setQuestionText] = useState(question.questionText);
-  const [correctAnswer, setCorrectAnswer] = useState(question.correctAnswer);
+  const [isTrue, setIsTrue] = useState(question.isTrue);
 
   useEffect(() => {
     onUpdate({
@@ -26,9 +26,9 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
       title,
       points,
       questionText,
-      correctAnswer,
+      isTrue,
     });
-  }, [title, points, questionText, correctAnswer]);
+  }, [title, points, questionText, isTrue]);
 
   const handleUpdate = () => {
     onUpdate({
@@ -36,7 +36,7 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
       title,
       points,
       questionText,
-      correctAnswer,
+      isTrue,
     });
   };
 
@@ -82,9 +82,9 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
         <label className="form-label">Correct Answer</label>
         <div className="d-flex">
           <div className="me-4 d-flex align-items-center">
-            {correctAnswer ? (
+            {isTrue ? (
               <FaCheckCircle
-                onClick={() => setCorrectAnswer(true)}
+                onClick={() => setIsTrue(true)}
                 className="me-2"
                 style={{
                   cursor: 'pointer',
@@ -94,7 +94,7 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
               />
             ) : (
               <FaCircle
-                onClick={() => setCorrectAnswer(true)}
+                onClick={() => setIsTrue(true)}
                 className="me-2"
                 style={{
                   cursor: 'pointer',
@@ -106,9 +106,9 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
             <span>True</span>
           </div>
           <div className="d-flex align-items-center">
-            {!correctAnswer ? (
+            {!isTrue ? (
               <FaCheckCircle
-                onClick={() => setCorrectAnswer(false)}
+                onClick={() => setIsTrue(false)}
                 className="me-2"
                 style={{
                   cursor: 'pointer',
@@ -118,7 +118,7 @@ const TrueFalseQuestion: React.FC<TrueFalseQuestionProps> = ({ question, onUpdat
               />
             ) : (
               <FaCircle
-                onClick={() => setCorrectAnswer(false)}
+                onClick={() => setIsTrue(false)}
                 className="me-2"
                 style={{
                   cursor: 'pointer',
