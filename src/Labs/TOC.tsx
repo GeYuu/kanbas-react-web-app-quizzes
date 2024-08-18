@@ -23,7 +23,7 @@ export default function TOC() {
       </li>
 
       <li className="nav-item">
-        <a id="wd-k" href="https://kanbas-node-server-app-1-s6q2.onrender.com" className="nav-link">
+        <a id="wd-k" href="https://kanbas-node-server-app-quizzes-87su.onrender.com/" className="nav-link">
           Render
         </a>
       </li>
