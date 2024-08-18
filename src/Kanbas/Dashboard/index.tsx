@@ -69,11 +69,7 @@ export default function Dashboard(
       // Pass the currentUser._id (userid) when adding a new course
       await addNewCourse(currentUser._id);
     } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(err.message || "An error occurred while adding the course");
-      }
+      setError(err.response?.data?.message || err.message || "An error occurred while adding the course");
     }
   };
 
@@ -91,11 +87,7 @@ export default function Dashboard(
       await updateCourse();
     }
     catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(err.message || "An error occurred while updating the course");
-      }
+      setError(err.response?.data?.message || err.message || "An error occurred while updating the course");
     }
   }
 
@@ -109,14 +101,15 @@ export default function Dashboard(
         return;
       }
 
-      // Pass the currentUser._id (userid) when deleting a course
-      await deleteCourse(courseId);
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(err.message || "An error occurred while deleting the course");
+      // Prompt for confirmation
+      const isConfirmed = window.confirm("Are you sure you want to delete this course?");
+      
+      if (isConfirmed) {
+        // Pass the currentUser._id (userid) when deleting a course
+        await deleteCourse(courseId);
       }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "An error occurred while deleting the course");
     }
   }
   
@@ -129,6 +122,7 @@ export default function Dashboard(
     <div id="wd-dashboard">
       <h1 id="wd-dashboard-title">Dashboard</h1>
       <hr />
+      {error && <div className="alert alert-danger">{error}</div>}
       <h5>Course Management</h5>
 
       {/* Enroll Link */}
@@ -139,29 +133,30 @@ export default function Dashboard(
       <div> Your Name: {currentUser?.username} </div>
       <div> Your Role: {currentUser?.role} </div>
 
-
       <hr />
-      <h5>New Course
-        <button className="btn btn-primary float-end"
-          id="wd-add-new-course-click"
-          onClick={handleAddNewCourse} > Add </button>
-        <button className="btn btn-warning float-end me-2"
-          onClick={handleUpdateCourse} id="wd-update-course-click">
-          Update
-        </button>
-      </h5><br />
+      {currentUser?.role === "FACULTY" && (
+        <>
+          <h5>New Course
+            <button className="btn btn-primary float-end"
+              id="wd-add-new-course-click"
+              onClick={handleAddNewCourse} > Add </button>
+            <button className="btn btn-warning float-end me-2"
+              onClick={handleUpdateCourse} id="wd-update-course-click">
+              Update
+            </button>
+          </h5><br />
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <label htmlFor="courseId">Course ID</label>
-      <input value={course._id} className="form-control mb-2"
-        onChange={(e) => setCourse({ ...course, _id: e.target.value })} />
-      <label htmlFor="courseName">Course Name</label>
-      <input value={course.name} className="form-control mb-2"
-        onChange={(e) => setCourse({ ...course, name: e.target.value })} />
-      <label htmlFor="courseNumber">Course Number</label>
-      <textarea value={course.description} className="form-control"
-        onChange={(e) => setCourse({ ...course, description: e.target.value })} />
+          <label htmlFor="courseId">Course ID</label>
+          <input value={course._id} className="form-control mb-2"
+            onChange={(e) => setCourse({ ...course, _id: e.target.value })} />
+          <label htmlFor="courseName">Course Name</label>
+          <input value={course.name} className="form-control mb-2"
+            onChange={(e) => setCourse({ ...course, name: e.target.value })} />
+          <label htmlFor="courseDescription">Course Description</label>
+          <textarea value={course.description} className="form-control"
+            onChange={(e) => setCourse({ ...course, description: e.target.value })} />
+        </>
+      )}
 
       <h2 id="wd-dashboard-enrolled">Enrolled Courses ({filteredCourses.length})</h2>
       <hr />
@@ -192,6 +187,7 @@ export default function Dashboard(
                       onClick={(event) => {
                         event.preventDefault();
                         setCourse(course);
+                        handleUpdateCourse();
                       }}
                       className="btn btn-warning me-2 float-end" >
                       Edit

@@ -16,6 +16,7 @@ export default function Profile() {
 
     const fetchProfile = async () => {
         try {
+            
             const account = await client.profile();
             // Convert the dob to the "yyyy-MM-dd" format
             const formattedDob = account.dob ? account.dob.split("T")[0] : "";

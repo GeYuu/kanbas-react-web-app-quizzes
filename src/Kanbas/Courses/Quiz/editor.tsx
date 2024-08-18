@@ -83,7 +83,7 @@ export default function QuizEditor() {
         showCorrectedAnswers: existingQuiz?.showCorrectedAnswers ?? false,
         accessCode: existingQuiz?.accessCode ?? false,
         accessCodeEntry: existingQuiz?.accessCodeEntry || 0,
-        oneQuestionAtATime: existingQuiz?.oneQuestionAtATime ?? false,
+        oneQuestionAtATime: existingQuiz?.oneQuestionAtATime ?? true,
         webCamRequired: existingQuiz?.webCamRequired ?? false,
         lockQuestionsAfterAnswering: existingQuiz?.lockQuestionsAfterAnswering ?? false,
         _id: existingQuiz?._id || new Date().getTime().toString(),
@@ -98,10 +98,61 @@ export default function QuizEditor() {
         published: existingQuiz?.published ?? false,
     });
 
+    const [errors, setErrors] = useState({
+        title: false,
+        dueDate: false,
+        availableFrom: false,
+        availableUntil: false,
+    });
+
     const handleCancel = () => {
         navigate(`/Kanbas/Courses/${cid}/quizzes`);
     };
     const handleSave = () => {
+        const newErrors = {
+            title: !quiz.title.trim(),
+            dueDate: !quiz.dueDate,
+            availableFrom: !quiz.availableFrom,
+            availableUntil: !quiz.availableUntil,
+        };
+
+        setErrors(newErrors);
+
+        // Validate questions
+        const questionErrors = quiz.questions.map(question => {
+            const baseErrors = {
+                title: !question.title.trim(),
+                points: question.points <= 0,
+                questionText: !question.questionText.trim(),
+            };
+
+            switch (question.type) {
+                case 'multiple-choice':
+                    return {
+                        ...baseErrors,
+                        choices: question.choices.length === 0,
+                        correctAnswer: !question.choices.some((choice: { isCorrect: boolean }) => choice.isCorrect),
+                    };
+                case 'true-false':
+                    return baseErrors;
+                case 'fill-in-blank':
+                    return {
+                        ...baseErrors,
+                        correctAnswers: question.correctAnswers.length === 0 || question.correctAnswers.some((answer: { text: string }) => !answer.text.trim()),
+                    };
+                default:
+                    return baseErrors;
+            }
+        });
+
+        const hasQuestionErrors = questionErrors.some(errors => Object.values(errors).some(error => error));
+
+        if (Object.values(newErrors).some(error => error) || hasQuestionErrors) {
+            // If there are any errors, don't save
+            alert("Please correct all errors before saving.");
+            return;
+        }
+
         const totalPoints = quiz.questions.reduce((sum, question) => sum + (question.points || 0), 0);
         const updatedQuiz = { ...quiz, points: totalPoints };
 
@@ -222,9 +273,10 @@ export default function QuizEditor() {
                                 id="title"
                                 value={quiz.title}
                                 onChange={handleChange}
-                                className="form-control"
+                                className={`form-control ${errors.title ? 'is-invalid' : ''}`}
                                 placeholder="Unnamed Quiz"
                             />
+                            {errors.title && <div className="invalid-feedback">Title is required</div>}
                         </div>
 
                         <div className="mb-3">
@@ -433,9 +485,10 @@ export default function QuizEditor() {
                                 <div className="col-md-8">
                                     <input className="form-check-input me-2"
                                         type="checkbox"
-                                        checked={quiz.oneQuestionAtATime}
+                                        checked={quiz.oneQuestionAtATime === true}
                                         onChange={(e) => setQuiz({ ...quiz, oneQuestionAtATime: e.target.checked })}
                                         id="oneQuestionAtATime"
+                                        
                                     />
                                     <label className="form-check-label" htmlFor="oneQuestionAtATime">
                                         One Question at a Time
@@ -496,8 +549,9 @@ export default function QuizEditor() {
                                             type="datetime-local"
                                             value={quiz.dueDate}
                                             onChange={handleChange}
-                                            className="form-control"
+                                            className={`form-control ${errors.dueDate ? 'is-invalid' : ''}`}
                                         />
+                                        {errors.dueDate && <div className="invalid-feedback">Due date is required</div>}
                                     </div>
                                     <div className="row">
                                         <div className="col-6">
@@ -509,8 +563,9 @@ export default function QuizEditor() {
                                                 type="datetime-local"
                                                 value={quiz.availableFrom}
                                                 onChange={handleChange}
-                                                className="form-control"
+                                                className={`form-control ${errors.availableFrom ? 'is-invalid' : ''}`}
                                             />
+                                            {errors.availableFrom && <div className="invalid-feedback">Available from date is required</div>}
                                         </div>
                                         <div className="col-6">
                                             <label htmlFor="availableUntil" className="form-label">
@@ -521,8 +576,9 @@ export default function QuizEditor() {
                                                 type="datetime-local"
                                                 value={quiz.availableUntil}
                                                 onChange={handleChange}
-                                                className="form-control"
+                                                className={`form-control ${errors.availableUntil ? 'is-invalid' : ''}`}
                                             />
+                                            {errors.availableUntil && <div className="invalid-feedback">Available until date is required</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -627,6 +683,7 @@ export default function QuizEditor() {
             <div className="d-flex justify-content-end mt-4">
                 <button onClick={handleCancel} className="btn btn-secondary me-2">Cancel</button>
                 <button onClick={handleSave} className="btn btn-primary btn-danger">Save</button>
+                
             </div>
         </div >
     );

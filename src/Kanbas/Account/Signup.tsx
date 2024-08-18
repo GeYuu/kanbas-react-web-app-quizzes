@@ -35,7 +35,7 @@ export default function Signup() {
 
 
     return (
-        <div className="wd-signup-screen">
+        <div className="wd-signup-screen"> 
             <h1>Sign up</h1>
             {error && <div className="wd-error alert alert-danger">{error}</div>}
             <div

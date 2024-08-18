@@ -2,7 +2,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { FaPencilAlt } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isBefore, isAfter } from 'date-fns';
 import { NumOfAttempts, findQuizTakenByUserId, findAllQuizzesTakenByQuizIdAndUserId } from './client';
 import { useState, useEffect } from 'react';
 
@@ -58,14 +58,20 @@ export default function QuizDetails() {
 
     const handleTakeQuiz = async () => {
         const numOfAttempts = await getNumOfAttempts();
-        console.log("numOfAttempts", numOfAttempts);
-        console.log("quiz.attemptLimit", quiz.attemptLimit);
-        if (numOfAttempts < quiz.attemptLimit) {
-            console.log("numOfAttempts", numOfAttempts);
-            console.log("attemptLimit", quiz.attemptLimit);
-            navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz`);
+        const now = new Date();
+        const availableFrom = parseISO(quiz.availableFrom);
+        const availableUntil = parseISO(quiz.availableUntil);
+
+        if (isAfter(now, availableFrom) && isBefore(now, availableUntil)) {
+            if (numOfAttempts < quiz.attemptLimit) {
+                navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz`);
+            } else {
+                alert("You have reached the maximum number of attempts for this quiz.");
+            }
+        } else if (isBefore(now, availableFrom)) {
+            alert("This quiz is not yet available.");
         } else {
-            alert("You have reached the maximum number of attempts for this quiz.");
+            alert("This quiz is no longer available.");
         }
     }
 
@@ -79,6 +85,13 @@ export default function QuizDetails() {
         const quizTakenByQuizIdAndUserId = await findAllQuizzesTakenByQuizIdAndUserId(qid as string, currentUser?._id as string);
 
         return quizTakenByQuizIdAndUserId;
+    }
+
+    const isQuizAvailable = () => {
+        const now = new Date();
+        const availableFrom = parseISO(quiz.availableFrom);
+        const availableUntil = parseISO(quiz.availableUntil);
+        return isAfter(now, availableFrom) && isBefore(now, availableUntil);
     }
 
 
@@ -117,14 +130,16 @@ export default function QuizDetails() {
                                     Edit</button>
                             </>
                         ) : (
-                            <div className="d-flex justify-content-center">
+                            <div className="d-flex justify-content-end">
                                 <div className="text-center">
                                     <button
                                         className="btn btn-secondary"
                                         onClick={() => handleTakeQuiz()}
-                                        disabled={attemptsNumber >= quiz.attemptLimit}
+                                        disabled={attemptsNumber >= quiz.attemptLimit || !isQuizAvailable()}
                                     >
-                                        {attemptsNumber >= quiz.attemptLimit ? "Attempt Limit Reached" : "Take Quiz"}
+                                        {attemptsNumber >= quiz.attemptLimit ? "Attempt Limit Reached" : 
+                                         !isQuizAvailable() ? (isBefore(new Date(), parseISO(quiz.availableFrom)) ? "Not Yet Available" : "No Longer Available") : 
+                                         "Take Quiz"}
                                     </button>
                                     <p className="mt-2">
                                         Attempts: {attemptsNumber} / {quiz.attemptLimit}
@@ -304,15 +319,20 @@ export default function QuizDetails() {
                             <thead>
                                 <tr>
                                     <th>Attempt</th>
-                                    <th>Score</th>
+                                    <th className="">Score</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {quizTakenByQuizIdAndUserId !== null && quizTakenByQuizIdAndUserId.length > 0 && (
                                     quizTakenByQuizIdAndUserId.map((quizTaken: any, index: number) =>
-                                        <tr onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz/Result`, { state: { result: quizTaken } })} style={{ cursor: 'pointer' }}>
-                                            <td>{index + 1}</td>
-                                            <td>{quizTaken.scorePercentage}% ({quizTaken.pointsEarned} / {quizTaken.totalPoints})</td>
+                                        <tr 
+                                            onClick={() => navigate(`/Kanbas/Courses/${quiz.course}/quizzes/${quiz._id}/takequiz/Result`, { state: { result: quizTaken } })} 
+                                            style={{ cursor: 'pointer' }}
+                                            className="hover-highlight"
+                                        >
+                                            <td className="text-primary"
+                                            ># {index + 1}</td>
+                                            <td className="text-primary">{quizTaken.scorePercentage}% ({quizTaken.pointsEarned} / {quizTaken.totalPoints})</td>
                                         </tr>
                                     )
                                 )}

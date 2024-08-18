@@ -118,13 +118,13 @@ export default function Quizzes() {
         if (isNaN(availableUntilDate.getTime())) {
             return 'Invalid Available Until Date';
         }
-
         if (currentDate > availableUntilDate) {
-            return 'Closed';
+            return <span className="text-danger">Closed</span>;
+            
         } else if (currentDate >= availableFromDate && currentDate <= availableUntilDate) {
-            return 'Available';
+            return <span className="text-success">Available</span>;
         } else if (currentDate < availableFromDate) {
-            return `Not available until ${format(availableFromDate, 'MMM d \'at\' h:mmaaa')}`;
+            return <span className="text-danger">Not available until {format(availableFromDate, 'MMM d \'at\' h:mmaaa')}</span>;
         }
     };
 
@@ -181,14 +181,20 @@ export default function Quizzes() {
                                             <span>{formatDate(quiz.dueDate)}</span>
                                             <span> | </span>
                                             {/* Points */}
-                                            <span>{quiz.points} points</span>
+                                            <span>{quiz.points} pts</span>
                                             <span> | </span>
                                             {/* Number of questions */}
                                             <span>{quiz.questions.length} questions</span>
                                             {/* Score (only for students) */}
-                                            {currentUser?.role === 'STUDENT' && lastAttemptScores[quiz._id] !== undefined && lastAttemptScores[quiz._id] !== null  && (
-                                                <span> | Score: {lastAttemptScores[quiz._id]}</span>
+                                            {currentUser?.role === 'STUDENT' && lastAttemptScores[quiz._id] !== undefined && lastAttemptScores[quiz._id] !== null  && lastAttemptScores[quiz._id] !== -1 && (
+                                                <>
+                                                <span className="text-dark"
+                                                > | Last Attempt Score:</span>
+                                                
+                                                <span> {lastAttemptScores[quiz._id]} pts</span>
+                                                </>
                                             )}
+                                            
                                         </span>
                                     </div>
                                     <div className="float-end position-relative">
