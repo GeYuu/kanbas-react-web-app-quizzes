@@ -15,17 +15,15 @@ export default function Profile() {
     const dispatch = useDispatch();
 
     const fetchProfile = async () => {
-        try {
-            
-            const account = await client.profile();
-            // Convert the dob to the "yyyy-MM-dd" format
-            const formattedDob = account.dob ? account.dob.split("T")[0] : "";
-            setProfile({ ...account, dob: formattedDob });
-        } catch (err: any) {
-            console.error(err);
 
+        try {
+            const account = await client.profile();
+            setProfile(account);
+          } catch (err: any) {
             navigate("/Kanbas/Account/Signin");
-        }
+          }
+      
+
     };
 
     const signout = async () => {
